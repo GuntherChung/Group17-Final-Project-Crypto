@@ -1,7 +1,3 @@
-/* eslint-disable no-plusplus */
-/* eslint-disable no-param-reassign */
-/* eslint-disable no-console */
-/* eslint-disable max-len */
 
 // Returns a JSON object from the 'url'
 async function getData(url) {
@@ -13,8 +9,10 @@ async function getData(url) {
 
 // Returns a list containing the value of the given 'property' for each element in the JSON
 function getPropertyForAll(json, property) {
-  return json.map((item) => item[property]);
+  data = json.map((item) => item[property]);
+  return data;
 }
+
 
 // Get 'numOfElements' from 'list' beginning at 'start'; wrap around the list if necessary
 function rotateList(list, start, numOfElements) {
@@ -53,65 +51,112 @@ function sort(obj, property) {
 
 // Display a bar chart showing the price of each coin (alphabetically ordered)
 async function initCryptoDataChart() {
-  const cryptocurrencyDataURL = 'https://api.coingecko.com/api/v3/coins/';
-  const cryptocurrencyJson = sort(await getData(cryptocurrencyDataURL), 'name'); // get the ecosystem data, and sort it by 'name'
-  const labelsList = getPropertyForAll(cryptocurrencyJson, 'name'); // extract the labels
+  const cryptocurrencyDataURL = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=250&page=1&sparkline=true';
+  const cryptocurrencyJson = await getData(cryptocurrencyDataURL); // get a 250 long list of coins and their 7 day change in price
 
-  const marketDataList = getPropertyForAll(cryptocurrencyJson, 'market_data'); // extract market data list
-  const currentPriceList = getPropertyForAll(marketDataList, 'current_price'); // extract the current price in multiple currencies
-  const cryptoPriceList = getPropertyForAll(currentPriceList, 'usd'); // extract the current price in usd
+  const Coin_Names = await getPropertyForAll(cryptocurrencyJson, 'name'); // extract the labels
+  console.log(Coin_Names)
+
+  const Coin_History = await getPropertyForAll(cryptocurrencyJson, 'sparkline_in_7d'); // extract nested array
+  console.log(Coin_History)
+
+  const History_Price = await getPropertyForAll(Coin_History, 'price'); // extract 7 days worth of price changes in array
+  console.log(History_Price)
 
   let start = 0; // index to start the sublist at
   let numOfElements = 10; // the number of elements we want in the sublist
-  let labelSublist = rotateList(labelsList, start, numOfElements); // rotate the labels list
-  let cryptoPriceSublist = rotateList(cryptoPriceList, start, numOfElements); // rotate the market cap list
+  let labelSublist = rotateList(Coin_Names, start, numOfElements); // rotate the labels list
+  let cryptoPriceSublist = rotateList(History_Price, start, numOfElements); // rotate the market cap list
+  
 
   const targetElement = document.querySelector('#market-cap-chart'); // get DOM Object for chart
 
   // prepare the data for the chart
+
+  // to not cluster the graph, the "" are skipped along the x-axis
+  const labels = (["DAY1", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "DAY3", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "DAY5", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "DAY7", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", "", ""]);
+  
   const data = {
-    labels: labelSublist,
-    datasets: [{
-      label: 'Crypto Price (USD)',
-      data: cryptoPriceSublist,
-      backgroundColor: [
-        'rgba(255, 99, 132, 0.2)',
-        'rgba(255, 159, 64, 0.2)',
-        'rgba(255, 205, 86, 0.2)',
-        'rgba(75, 192, 192, 0.2)',
-        'rgba(54, 162, 235, 0.2)',
-        'rgba(153, 102, 255, 0.2)',
-        'rgba(201, 203, 207, 0.2)'
-      ],
-      borderColor: [
-        'rgb(255, 99, 132)',
-        'rgb(255, 159, 64)',
-        'rgb(255, 205, 86)',
-        'rgb(75, 192, 192)',
-        'rgb(54, 162, 235)',
-        'rgb(153, 102, 255)',
-        'rgb(201, 203, 207)'
-      ]
-    }]
+    labels: labels,
+    datasets: [
+      {
+        label: labelSublist[0],
+        data: cryptoPriceSublist[0],
+        borderColor: "#f79205",
+        backgroundColor: "#f79205",
+        yAxisID: 'y',
+      },
+      {
+        label: labelSublist[1],
+        data: cryptoPriceSublist[1],
+        borderColor: "#00fc00",
+        backgroundColor: "#00fc00",
+        yAxisID: 'y',
+      },
+      {
+        label: labelSublist[3],
+        data: cryptoPriceSublist[3],
+        borderColor: "#0291f7",
+        backgroundColor: "#0291f7",
+        yAxisID: 'y',
+      },
+      {
+        label: labelSublist[4],
+        data: cryptoPriceSublist[4],
+        borderColor: "#f70202",
+        backgroundColor: "#f70202",
+        yAxisID: 'y',
+      },
+      {
+        label: labelSublist[5],
+        data: cryptoPriceSublist[5],
+        borderColor: "#f20aee",
+        backgroundColor: "#f20aee",
+        yAxisID: 'y',
+      }
+    ]
   };
 
   // configure the asesthetics of the chart
   const config = {
+    type: 'line',
+    data: data,
     options: {
       responsive: true,
-      backgroundColor: '#9BD0F5',
-      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+      stacked: false,
+      plugins: {
+        title: {
+          display: true,
+          text: 'Chart.js Line Chart - Multi Axis'
+        }
+      },
       scales: {
         y: {
-          beginAtZero: true
-        }
+          type: 'linear',
+          display: true,
+          position: 'left',
+        },
+        y1: {
+          type: 'linear',
+          display: true,
+          position: 'right',
+  
+          // grid line settings
+          grid: {
+            drawOnChartArea: false, // only want the grid lines for one axis to show up
+          },
+        },
       }
-    }
+    },
   };
 
   const marketCapChart = new Chart(
     targetElement, {
-      type: 'bar',
+      type: 'line',
       data: data,
       config
     }
@@ -168,7 +213,7 @@ function injectHTML(list) {
   });
   console.log('fired injectHTML');
 }
-
+/*
 async function initSearchBar() {
   const form = document.querySelector('.search_form');
   form.addEventListener('input', (event) => {
@@ -176,10 +221,11 @@ async function initSearchBar() {
     console.log(event.target);
   });
 }
+*/
 
 async function mainEvent() {
   const ecosystemChart = initCryptoDataChart();
-  const searchBar = initSearchBar();
+  /*const searchBar = initSearchBar();*/
 }
 
 document.addEventListener('DOMContentLoaded', async () => mainEvent());
